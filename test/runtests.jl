@@ -178,9 +178,11 @@ end
             @test @eval $op($T, BigRational(45,13)) == $op($T, 45//13)
         end
     end
-    @test gcd(BigRational(3,4), BigRational(5,6)) == gcd(3//4,5//6)
-    @test lcm(BigRational(-2,7), BigRational(3,8)) == lcm(-2//7,3//8)
-    @test gcdx(BigRational(1,9), BigRational(5,-2)) == gcdx(1//9,-5//2)
+    if VERSION >= v"1.4.0-rc1"
+        @test gcd(BigRational(3,4), BigRational(5,6)) == gcd(3//4,5//6)
+        @test lcm(BigRational(-2,7), BigRational(3,8)) == lcm(-2//7,3//8)
+        @test gcdx(BigRational(1,9), BigRational(5,-2)) == gcdx(1//9,-5//2)
+    end
     @test sign(BigRational(-3,4)) == -sign(BigRational(2,9))
     @test signbit(BigRational(5,-8)) && !signbit(BigRational(3,4))
     @test copysign(BigRational(2,3), -4.3) == copysign(BigRational(-4,6), BigRational(-1,3)) == -2//3
