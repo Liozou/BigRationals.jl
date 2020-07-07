@@ -26,6 +26,7 @@ ZERO = BigRational(0,1)
     @test BigRational(typemin(Int16),-2) == cld(typemax(Int16),2)
     @test BigRational(-3,typemin(Int16)) == BigRational(3,typemax(Int16)+1)
     @test BigRational(typemin(Int32), UInt(3)) == BigRational(typemin(Int32)%Int64, UInt(3)) == BigRational(typemin(Int32), UInt16(3))
+    @test BigRational(typemin(Int64), UInt(3)) == BigRational(typemin(Int64)%Int64, UInt(3)) == BigRational(typemin(Int64), UInt16(3))
     @test BigRational(typemin(Int), typemin(Int)) == -BigRational(-3,3) == -BigRational(7,-7) == ONE
     @test BigRational(3,false) == BigRational(true,false) == BigRational(true, 0) == BigRational(Int128(1),Int128(0))
     @test BigRational(true, 12) == 1//12

@@ -24,22 +24,11 @@ BigRational(x::Integer) = BigRational(BigInt(x))
 
 BigRational(x::Rational) = MPQ.set_den!(BigRational(numerator(x)), denominator(x))
 
-if VERSION >= v"1.5.0-beta1"
-    @eval begin
-        function BigRational(x::Clong, y::Culong)
-            num, den = divgcd(x, y)
-            MPQ.set_si(num, den)
-        end
-    end
-else
-    @eval begin
-        function BigRational(x::Clong, y::Culong)
-            g = gcd(unsigned(abs(x)), y)
-            num = div(x, g)
-            den = div(y, g)
-            MPQ.set_si(num, den)
-        end
-    end
+function BigRational(x::Clong, y::Culong)
+    g = gcd(unsigned(abs(x)), y)
+    num = div(x, g)
+    den = div(y, g)
+    MPQ.set_si(num, den)
 end
 BigRational(x::ClongMax, y::CulongMax) = BigRational(Clong(x), Culong(y))
 function BigRational(x::ClongSmall, y::ClongMax)
