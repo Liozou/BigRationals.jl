@@ -113,19 +113,15 @@ denominator(x::BigRational) = MPQ.get_den(x)
 # numerator(x::BigRational) = unsafe_load(Ptr{BigInt}(pointer_from_objref(x)), 1)
 # denominator(x::BigRational) = unsafe_load(Ptr{BigInt}(pointer_from_objref(x)), 2)
 
-if VERSION >= v"1.5.0-rc1"
-    @eval begin
-        Rational{BigInt}(x::BigRational) = Base.unsafe_rational(BigInt, numerator(x), denominator(x))
-        function Rational{T}(x::BigRational) where {T <: Integer}
-            Base.unsafe_rational(convert(T, numerator(x)), convert(T, denominator(x)))
-        end
+@static if VERSION >= v"1.5.0-rc1"
+    Rational{BigInt}(x::BigRational) = Base.unsafe_rational(BigInt, numerator(x), denominator(x))
+    function Rational{T}(x::BigRational) where {T <: Integer}
+        Base.unsafe_rational(convert(T, numerator(x)), convert(T, denominator(x)))
     end
 else
-    @eval begin
-        Rational{BigInt}(x::BigRational) = Rational{BigInt}(numerator(x), denominator(x))
-        function Rational{T}(x::BigRational) where {T <: Integer}
-            Rational{T}(convert(T, numerator(x)), convert(T, denominator(x)))
-        end
+    Rational{BigInt}(x::BigRational) = Rational{BigInt}(numerator(x), denominator(x))
+    function Rational{T}(x::BigRational) where {T <: Integer}
+        Rational{T}(convert(T, numerator(x)), convert(T, denominator(x)))
     end
 end
 Rational(x::BigRational) = Rational{BigInt}(x)
@@ -134,18 +130,16 @@ isinteger(x::BigRational) = isone(denominator(x))
 
 ## Conversions and promotions
 
-if VERSION >= v"1.1.0-rc1"
-    @eval begin
-        function BigFloat(x::BigRational, r::Base.MPFR.MPFRRoundingMode=Base.MPFR.ROUNDING_MODE[]; precision::Integer=Base.MPFR.DEFAULT_PRECISION[])
-            Base.MPFR.setprecision(BigFloat, precision) do
-                Base.MPFR.setrounding_raw(BigFloat, r) do
-                    BigFloat(numerator(x)) / BigFloat(denominator(x))
-                end
+@static if VERSION >= v"1.1.0-rc1"
+    function BigFloat(x::BigRational, r::Base.MPFR.MPFRRoundingMode=Base.MPFR.ROUNDING_MODE[]; precision::Integer=Base.MPFR.DEFAULT_PRECISION[])
+        Base.MPFR.setprecision(BigFloat, precision) do
+            Base.MPFR.setrounding_raw(BigFloat, r) do
+                BigFloat(numerator(x)) / BigFloat(denominator(x))
             end
         end
     end
 else
-    @eval BigFloat(x::BigRational) = BigFloat(numerator(x)) / BigFloat(denominator(x))
+    BigFloat(x::BigRational) = BigFloat(numerator(x)) / BigFloat(denominator(x))
 end
 function (::Type{T})(x::BigRational) where T<:AbstractFloat
     convert(T, convert(T, numerator(x)) / convert(T, denominator(x)))
@@ -165,12 +159,8 @@ promote_rule(::Type{BigRational}, ::Type{<:AbstractFloat}) = BigFloat
 
 for (op1, op2) in ((:(==), :iszero), (:cmp, :sign))
     @eval begin
-        function $op1(x::BigRational, y::Rational{<:CulongMax})
-            $op2(MPQ.cmp_ui(x, numerator(y), denominator(y)))
-        end
-        function $op1(x::BigRational, y::Rational{<:ClongMax})
-            $op2(MPQ.cmp_si(x, numerator(y), denominator(y)))
-        end
+        $op1(x::BigRational, y::Rational{<:CulongMax}) = $op2(MPQ.cmp_ui(x, numerator(y), denominator(y)))
+        $op1(x::BigRational, y::Rational{<:ClongMax}) = $op2(MPQ.cmp_si(x, numerator(y), denominator(y)))
         $op1(x::BigRational, y::ClongMax) = $op2(MPQ.cmp_si(x, Clong(y), one(Culong)))
         $op1(x::BigRational, y::CulongMax) = $op2(MPQ.cmp_ui(x, Culong(y), one(Culong)))
         $op1(x::BigRational, y::BigInt) = $op2(MPQ.cmp_z(x, y))
@@ -243,7 +233,7 @@ function power_by_squaring(x::BigRational, p::Integer)
         elseif p == -1
             return inv(x)
         else
-            power_by_squaring(inv(x), -p)
+            return power_by_squaring(inv(x), -p)
         end
     end
     t = trailing_zeros(p) + 1
@@ -290,23 +280,21 @@ for op in (:rem, :mod)
 end
 
 const nmissingtype = VERSION >= v"1.3.0-rc1" ? Base.nonmissingtype_checked : Base.nonmissingtype
-if VERSION >= v"1.4.0-rc1"
+@static if VERSION >= v"1.4.0-rc1"
 
-    @eval begin
-        function div(x::BigRational, y::Integer, r::RoundingMode)
-            xn, yn = divgcd(numerator(x), y)
-            div(xn, denominator(x) * yn, r)
+    function div(x::BigRational, y::Integer, r::RoundingMode)
+        xn, yn = divgcd(numerator(x), y)
+        div(xn, denominator(x) * yn, r)
+    end
+    function div(x::Integer, y::BigRational, r::RoundingMode)
+        xn, yn = divgcd(x, numerator(y))
+        div(xn * denominator(y), yn, r)
+    end
+    function round(::Type{T}, x::BigRational, r::RoundingMode=RoundNearest) where T
+        if iszero(denominator(x)) && !(T <: Integer)
+            return convert(T, Rational{Int32}(sign(numerator(x)), 0))
         end
-        function div(x::Integer, y::BigRational, r::RoundingMode)
-            xn, yn = divgcd(x, numerator(y))
-            div(xn * denominator(y), yn, r)
-        end
-        function round(::Type{T}, x::BigRational, r::RoundingMode=RoundNearest) where T
-            if iszero(denominator(x)) && !(T <: Integer)
-                return convert(T, Rational{Int32}(sign(numerator(x)), 0))
-            end
-            convert(T, div(numerator(x), denominator(x), r))
-        end
+        convert(T, div(numerator(x), denominator(x), r))
     end
     for (T1, T2) in ((:Rational, :BigRational), (:BigRational, :Rational), (:BigRational, :BigRational))
         @eval begin
@@ -327,38 +315,41 @@ if VERSION >= v"1.4.0-rc1"
 
 else
 
-    @eval begin
-        function round(::Type{T}, x::BigRational, ::RoundingMode{:ToZero}) where T
-            convert(T, div(numerator(x), denominator(x)))
-        end
-        function round(::Type{T}, x::BigRational, ::RoundingMode{:Down}) where T
-            convert(T, fld(numerator(x), denominator(x)))
-        end
-        function round(::Type{T}, x::BigRational, ::RoundingMode{:Up}) where T
-            convert(T, cld(numerator(x), denominator(x)))
-        end
-        function round(::Type{T}, x::BigRational, ::RoundingMode{:Nearest}) where T
-            if T <: Integer
-                if iszero(denominator(x))
-                    throw(DivideError())
-                end
-            elseif iszero(denominator(x))
-                return convert(T, Rational{Int32}(sign(numerator(x)), 0))
-            end
-            q,r = divrem(numerator(x), denominator(x))
-            s = q
-            if abs(r) >= abs((denominator(x)-copysign(BigInt(4), numerator(x))+one(BigInt)+iseven(q))>>1 + copysign(BigInt(2), numerator(x)))
-                s += copysign(one(BigInt), numerator(x))
-            end
-            convert(T, s)
-        end
-        function round(::Type{T}, x::BigRational) where T
-            round(T, x, RoundNearest)
-        end
-        function round(::Type{T}, x::BigRational, r::RoundingMode{:Nearest}) where {T>:Missing}
-            round(nmissingtype(T), x, r)
-        end # to avoid ambiguities
+    function round(::Type{T}, x::BigRational, ::RoundingMode{:ToZero}) where T
+        convert(T, div(numerator(x), denominator(x)))
     end
+    function round(::Type{T}, x::BigRational, ::RoundingMode{:Down}) where T
+        convert(T, fld(numerator(x), denominator(x)))
+    end
+    function round(::Type{T}, x::BigRational, ::RoundingMode{:Up}) where T
+        convert(T, cld(numerator(x), denominator(x)))
+    end
+    function round(::Type{T}, x::BigRational, ::RoundingMode{:Nearest}) where T
+        if T <: Integer
+            if iszero(denominator(x))
+                throw(DivideError())
+            end
+        elseif iszero(denominator(x))
+            return convert(T, Rational{Int32}(sign(numerator(x)), 0))
+        end
+        q,r = divrem(numerator(x), denominator(x))
+        s = q
+        if abs(r) >= abs((denominator(x)-copysign(BigInt(4), numerator(x))+one(BigInt)+iseven(q))>>1 + copysign(BigInt(2), numerator(x)))
+            s += copysign(one(BigInt), numerator(x))
+        end
+        convert(T, s)
+    end
+    function round(::Type{T}, x::BigRational) where T
+        round(T, x, RoundNearest)
+    end
+    for S in (:(RoundingMode{:Up}), :(RoundingMode{:Down}), :(RoundingMode{:ToZero}), :(RoundingMode{:Nearest}))
+        @eval begin
+            function round(::Type{T}, x::BigRational, r::$S) where {T>:Missing}
+                round(nmissingtype(T), x, r)
+            end # to avoid ambiguities
+        end
+    end
+
     for op in (:div, :fld, :cld)
         @eval begin
             function $op(x::BigRational, y::Integer)
@@ -428,8 +419,11 @@ sign(x::BigRational) = sign(numerator(x))
 signbit(x::BigRational) = signbit(numerator(x))
 
 copysign(x::BigRational, y::Real) = signbit(x) == signbit(y) ? x : -x
-
 flipsign(x::BigRational, y::Real) = signbit(y) ? -x : x
+@static if VERSION < v"1.2.0-rc1"
+    copysign(x::BigRational, y::Unsigned) = abs(x)
+    flipsign(x::BigRational, y::Unsigned) = x
+end
 
 abs(x::BigRational) = MPQ.abs(x)
 

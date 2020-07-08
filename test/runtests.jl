@@ -1,5 +1,8 @@
 using BigRationals
 using Test
+using Aqua
+
+Aqua.test_all(BigRationals)
 
 ONE = BigRational(1,1)
 ZERO = BigRational(0,1)
@@ -114,11 +117,12 @@ end
 
 @testset "IO operations" begin
     @test string(BigRational(6,3)) == "BigRational(2,1)"
+    @test string(BigRational[BigRational(-2,3), BigRational(4,5)]) == "BigRational[-2//3, 4//5]"
     io = IOBuffer()
     show(io, BigRational(2,-4))
     @test String(take!(io)) == "BigRational(-1,2)"
-    io = IOBuffer()
 
+    io = IOBuffer()
     # The following tests are broken because there is no read/write for BigInt in Base
     @test_broken write(io, BigRational(2,3)) == 32
     @test_broken read(io, BigRational) == BigRational(2,3)
@@ -173,18 +177,25 @@ end
     @test (BigRational(1,1)*im)^false == BigRational(2,3)^0
     @test BigRational(4,9)^3 == BigRational(64,729)^1 == BigRational(8,27)^2
     @test BigRational(16,25)^(-1) == BigRational(25,16) == BigRational(4,5)^(-2)
+    x = 2 # used to avoid ^ to Val lowering
+    @test BigRational(16,25)^(x-3) == BigRational(25,16) == BigRational(4,5)^(-x)
+    @test BigRational(2,3)^8 == BigRational(4,9)^4 == BigRational(16,81)^2
     @test ℯ^BigRational(3,4) ≈ 2.117
     for op in (:-, :inv)
         @test @eval $op(BigRational(12,7)) == $op(12//7)
         @test @eval $op(BigRational(-2,3)) == $op(-2//3)
     end
     for op in (:trunc, :floor, :ceil, :round)
-        for T in (:(Rational{Int8}), :UInt16, :Int, :(Union{BigInt,Missing}), :Float16)
+        @test @eval $op(UInt, BigRational(14,5)) == $op(UInt, 14//5)
+        for T in (:(Rational{Int8}), :Int, :(Union{BigInt,Missing}), :Float16)
             @test @eval $op($T, BigRational(45,13)) == $op($T, 45//13)
+            @test @eval $op($T, BigRational(-7,9)) == $op($T, -7//9)
         end
     end
     @test round(Float64, typemax(BigRational)) === -round(Float64, typemin(BigRational)) === Inf
     @test round(BigRational(5,2), RoundUp) == BigRational(3)
+    @test round(Union{Int,Missing}, BigRational(3,2), RoundDown) == round(Union{Int,Missing}, BigRational(3,2), RoundToZero)
+    @test round(Union{Float64,Missing}, BigRational(1,4), RoundUp) == 1.0
     @test_throws DivideError round(Int, typemax(BigRational))
     if VERSION >= v"1.4.0-rc1"
         @test gcd(BigRational(3,4), BigRational(5,6)) == gcd(3//4, 5//6)
@@ -198,6 +209,7 @@ end
     @test copysign(BigRational(2,3), -4.3) == copysign(BigRational(-4,6), BigRational(-1,3)) == -2//3
     @test copysign(BigRational(-4,5), BigInt(2)) == copysign(BigRational(4,5), 2//3) == BigRational(4,5)
     @test flipsign(BigRational(1,3), -3.0)  == flipsign(BigRational(2,6), -1) == flipsign(BigRational(-1,3), true) == -1//3
+    @test flipsign(BigRational(2,5), 0x2) == copysign(BigRational(-2,5), 0x0003) == BigRational(2,5)
     @test abs(BigRational(typemin(Int)+2,typemax(Int))) == abs(BigRational(typemax(Int)-1,typemax(Int)))
 end
 
@@ -213,9 +225,26 @@ end
     @test fma(x, x, x) == x*(x+1)
     @test fma(BigRational(2,3), BigRational(6,5), BigRational(12,7)) == 2//3 * 6//5 + 12//7
     y = deepcopy(x)
-    BigRationals.MPQ.add!(y, BigRational(1))
+    BigRationals.MPQ.mul_2exp!(y, 3)
     @test x == 3//4
-    @test y == x + 1
+    @test y == x * (1<<3)
     @test hash(x) == hash(3//4)
-    @test hash(y, UInt(123)) == hash(x+1, UInt(123))
+    @test hash(y, UInt(123)) == hash(x*(1<<3), UInt(123))
+    z = [BigRational(7,5)]
+    push!(z, BigRationals.MPQ.div_2exp(first(z), 2))
+    push!(z, first(z))
+    t = deepcopy(z)
+    @test first(t) === last(t)
+    @test first(t) != t[2]
+    @test hash(t) == hash(z)
+    @test t == z == BigRational[7//5, 7//20, 7//5]
+    BigRationals.MPQ.swap!(z[1], z[3])
+    @test hash(t) == hash(z)
+    @test t == z == BigRational[7//5, 7//20, 7//5]
+    @test first(t) === last(t)
+    BigRationals.MPQ.swap!(z[1], z[2])
+    @test hash(t) != hash(z)
+    @test t != z
+    @test z == BigRational[7//20, 7//5, 7//20]
+    @test first(t) === last(t)
 end

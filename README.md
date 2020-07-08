@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.com/Liozou/BigRationals.jl.svg?branch=master)](https://travis-ci.com/Liozou/BigRationals.jl)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/Liozou/BigRationals.jl?svg=true)](https://ci.appveyor.com/project/Liozou/BigRationals-jl)
 [![codecov](https://codecov.io/gh/Liozou/BigRationals.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Liozou/BigRationals.jl)
+[![Aqua QA](https://img.shields.io/badge/Aqua.jl-%F0%9F%8C%A2-aqua.svg)](https://github.com/tkf/Aqua.jl)
 
 This package provides a wrapper around the GNU Multiple Precision (GMP) rational type `mpq_t` into the new Julia type `BigRational`. It requires GMP to be installed.
 For interoperability with Julia's native `BigInt` type (which is a wrapper around GMP's integer type `mpz_t`), the same version of GMP should be used for both Julia and this package. This package is not tested for systems where the default GMP installation version is not the same as Julia's.
@@ -39,4 +40,3 @@ BigRational(3,4)
 ```
 
 Be warned that, even with this package, `widen(Rational{Int128}) == Rational{BigInt}` and `big(Rational) == Rational{BigInt}` and not `BigRational`, since changing these behaviours would be type piracy.
-

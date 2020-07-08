@@ -25,5 +25,5 @@ jobs:
       os: osx
 codecov: true
 after_success:
-- julia -e 'using Pkg; cd(Pkg.dir("BigRationals")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+- julia -e 'import BigRationals; cd(joinpath(dirname(pathof(BigRationals)), "..")); using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
 
