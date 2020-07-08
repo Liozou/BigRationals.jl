@@ -343,7 +343,7 @@ else
                     throw(DivideError())
                 end
             elseif iszero(denominator(x))
-                return convert(T, 1//0)
+                return convert(T, Rational{Int32}(sign(numerator(x)), 0))
             end
             q,r = divrem(numerator(x), denominator(x))
             s = q

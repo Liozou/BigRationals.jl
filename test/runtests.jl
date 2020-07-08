@@ -163,6 +163,10 @@ end
             @test @eval $op($T(15,2), BigRational(26,11)) == $ret2
         end
     end
+    @test rem(BigRational(100,3), 2) == BigRational(100,3) - 2 * div(BigRational(100,3), 2)
+    @test rem(5, BigRational(2,7)) == 5 - BigRational(2,7) * div(5, BigRational(2,7))
+    @test fld(BigRational(100,3), 2) == div(BigRational(100,3), 2) == cld(BigRational(100,3), 2) - 1
+    @test cld(-5, BigRational(2,7)) == div(-5, BigRational(2,7)) == fld(-5, BigRational(2,7)) + 1
     @test 4^(BigRational(3,2)) == 2.0^(BigRational(3,1)) == 8.0
     @test im^(BigRational(3,2)) ≈ -sqrt(2)/2 + sqrt(2)*im/2
     @test (BigRational(2,3)*im)^true == (2im)//3 == (BigRational(-3,2)*im)^(-1)
@@ -175,14 +179,19 @@ end
         @test @eval $op(BigRational(-2,3)) == $op(-2//3)
     end
     for op in (:trunc, :floor, :ceil, :round)
-        for T in (:(Rational{Int8}), :UInt16, :Int, :(Union{BigInt,Missing}))
+        for T in (:(Rational{Int8}), :UInt16, :Int, :(Union{BigInt,Missing}), :Float16)
             @test @eval $op($T, BigRational(45,13)) == $op($T, 45//13)
         end
     end
+    @test round(Float64, typemax(BigRational)) === -round(Float64, typemin(BigRational)) === Inf
+    @test round(BigRational(5,2), RoundUp) == BigRational(3)
+    @test_throws DivideError round(Int, typemax(BigRational))
     if VERSION >= v"1.4.0-rc1"
-        @test gcd(BigRational(3,4), BigRational(5,6)) == gcd(3//4,5//6)
-        @test lcm(BigRational(-2,7), BigRational(3,8)) == lcm(-2//7,3//8)
-        @test gcdx(BigRational(1,9), BigRational(5,-2)) == gcdx(1//9,-5//2)
+        @test gcd(BigRational(3,4), BigRational(5,6)) == gcd(3//4, 5//6)
+        @test lcm(BigRational(-2,7), BigRational(3,8)) == lcm(-2//7, 3//8)
+        @test gcdx(BigRational(1,9), BigRational(5,-2)) == gcdx(1//9, -5//2)
+        @test gcdx(BigRational(2,3), zero(BigRational)) == gcdx(2//3, 0//1)
+        @test gcdx(BigRational(1,0), BigRational(5,3)) == BigRational.(gcdx(1//0, 5//3))
     end
     @test sign(BigRational(-3,4)) == -sign(BigRational(2,9))
     @test signbit(BigRational(5,-8)) && !signbit(BigRational(3,4))
