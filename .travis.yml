@@ -23,3 +23,7 @@ jobs:
   exclude:
     - arch: x86
       os: osx
+codecov: true
+after_success:
+- julia -e 'cd(Pkg.dir("BigRationals")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+
