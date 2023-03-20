@@ -471,7 +471,7 @@ end
 
 function Base.deepcopy_internal(x::BigRational, stackdict::IdDict)
     if haskey(stackdict, x)
-        return stackdict[x]
+        return stackdict[x]::BigRational
     end
     y = MPQ.set(x)
     stackdict[x] = y
