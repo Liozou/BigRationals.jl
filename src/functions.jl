@@ -2,7 +2,8 @@ import Base: divgcd, numerator, denominator, string, show, ==, hastypemax,
              iszero, isone, <, <=, cmp, widen, promote_rule, isinteger, BigFloat,
              +, -, *, /, //, ^, inv, div, fld, cld, trunc, floor, ceil, round, rem, mod,
              read, write, sign, signbit, typemax, typemin, copysign, flipsign,
-             abs, fma, gcd, gcdx, lcm, decompose, power_by_squaring, big
+             abs, fma, gcd, gcdx, lcm, decompose, power_by_squaring, big,
+             Rational, Bool
 
 import Base.GMP: ClongMax, CulongMax, CdoubleMax
 
