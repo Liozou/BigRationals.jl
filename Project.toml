@@ -1,7 +1,7 @@
 name = "BigRationals"
 uuid = "4b135b7f-1e8f-46e2-b4fa-ae0bd8ae44fd"
 authors = ["Lionel Zoubritzky lionel.zoubritzky@gmail.com"]
-version = "0.1.0"
+version = "1.0.0"
 
 [compat]
 julia = "1.10"

@@ -41,4 +41,4 @@ BigRational(3,4)
 
 Be warned that, even with this package, `widen(Rational{Int128}) == Rational{BigInt}` and `big(Rational) == Rational{BigInt}` and not `BigRational`, since changing these behaviours would be type piracy.
 
-Note: starting from Julia v1.9.0 (https://github.com/JuliaLang/julia/pull/44566), GMP's `mpq_t` type underlies any `Rational{BigInt}` instance and computation, so the performance improvement using `BigRationals` should only be modest.
+Note: starting from Julia v1.6.0 (https://github.com/JuliaLang/julia/pull/38520), GMP's `mpq_t` type underlies any `Rational{BigInt}` instance and computation, so the performance improvement using `BigRationals` should only be modest.
