@@ -1,4 +1,4 @@
-import Base: divgcd, numerator, denominator, string, show, ==, hastypemax,
+import Base: divgcd, numerator, denominator, string, show, ==,
              iszero, isone, <, <=, cmp, widen, promote_rule, isinteger, BigFloat,
              +, -, *, /, //, ^, inv, div, fld, cld, trunc, floor, ceil, round, rem, mod,
              read, write, sign, signbit, typemax, typemin, copysign, flipsign,
@@ -114,16 +114,9 @@ denominator(x::BigRational) = MPQ.get_den(x)
 # numerator(x::BigRational) = unsafe_load(Ptr{BigInt}(pointer_from_objref(x)), 1)
 # denominator(x::BigRational) = unsafe_load(Ptr{BigInt}(pointer_from_objref(x)), 2)
 
-@static if VERSION >= v"1.5.0-rc1"
-    Rational{BigInt}(x::BigRational) = Base.unsafe_rational(BigInt, numerator(x), denominator(x))
-    function Rational{T}(x::BigRational) where {T <: Integer}
-        Base.unsafe_rational(convert(T, numerator(x)), convert(T, denominator(x)))
-    end
-else
-    Rational{BigInt}(x::BigRational) = Rational{BigInt}(numerator(x), denominator(x))
-    function Rational{T}(x::BigRational) where {T <: Integer}
-        Rational{T}(convert(T, numerator(x)), convert(T, denominator(x)))
-    end
+Rational{BigInt}(x::BigRational) = Base.unsafe_rational(BigInt, numerator(x), denominator(x))
+function Rational{T}(x::BigRational) where {T <: Integer}
+    Base.unsafe_rational(convert(T, numerator(x)), convert(T, denominator(x)))
 end
 Rational(x::BigRational) = Rational{BigInt}(x)
 
@@ -131,16 +124,12 @@ isinteger(x::BigRational) = isone(denominator(x))
 
 ## Conversions and promotions
 
-@static if VERSION >= v"1.1.0-rc1"
-    function BigFloat(x::BigRational, r::Base.MPFR.MPFRRoundingMode=Base.MPFR.ROUNDING_MODE[]; precision::Integer=Base.MPFR.DEFAULT_PRECISION[])
-        Base.MPFR.setprecision(BigFloat, precision) do
-            Base.MPFR.setrounding_raw(BigFloat, r) do
-                BigFloat(numerator(x)) / BigFloat(denominator(x))
-            end
+function BigFloat(x::BigRational, r::Base.MPFR.MPFRRoundingMode=Base.MPFR.ROUNDING_MODE[]; precision::Integer=Base.MPFR.DEFAULT_PRECISION[])
+    Base.MPFR.setprecision(BigFloat, precision) do
+        Base.MPFR.setrounding_raw(BigFloat, r) do
+            BigFloat(numerator(x)) / BigFloat(denominator(x))
         end
     end
-else
-    BigFloat(x::BigRational) = BigFloat(numerator(x)) / BigFloat(denominator(x))
 end
 function (::Type{T})(x::BigRational) where T<:AbstractFloat
     convert(T, convert(T, numerator(x)) / convert(T, denominator(x)))
@@ -280,99 +269,36 @@ for op in (:rem, :mod)
     end
 end
 
-const nmissingtype = VERSION >= v"1.3.0-rc1" ? Base.nonmissingtype_checked : Base.nonmissingtype
-@static if VERSION >= v"1.4.0-rc1"
-
-    function div(x::BigRational, y::Integer, r::RoundingMode)
-        xn, yn = divgcd(numerator(x), y)
-        div(xn, denominator(x) * yn, r)
+const nmissingtype = Base.nonmissingtype_checked
+function div(x::BigRational, y::Integer, r::RoundingMode)
+    xn, yn = divgcd(numerator(x), y)
+    div(xn, denominator(x) * yn, r)
+end
+function div(x::Integer, y::BigRational, r::RoundingMode)
+    xn, yn = divgcd(x, numerator(y))
+    div(xn * denominator(y), yn, r)
+end
+function round(::Type{T}, x::BigRational, r::RoundingMode=RoundNearest) where T
+    if iszero(denominator(x)) && !(T <: Integer)
+        return convert(T, Rational{Int32}(sign(numerator(x)), 0))
     end
-    function div(x::Integer, y::BigRational, r::RoundingMode)
-        xn, yn = divgcd(x, numerator(y))
-        div(xn * denominator(y), yn, r)
-    end
-    function round(::Type{T}, x::BigRational, r::RoundingMode=RoundNearest) where T
-        if iszero(denominator(x)) && !(T <: Integer)
-            return convert(T, Rational{Int32}(sign(numerator(x)), 0))
-        end
-        convert(T, div(numerator(x), denominator(x), r))
-    end
-    for (T1, T2) in ((:Rational, :BigRational), (:BigRational, :Rational), (:BigRational, :BigRational))
-        @eval begin
-            function div(x::$T1, y::$T2, r::RoundingMode)
-                xn, yn = divgcd(numerator(x), numerator(y))
-                xd, yd = divgcd(denominator(x), denominator(y))
-                div(xn * yd, xd * yn, r)
-            end
+    convert(T, div(numerator(x), denominator(x), r))
+end
+for (T1, T2) in ((:Rational, :BigRational), (:BigRational, :Rational), (:BigRational, :BigRational))
+    @eval begin
+        function div(x::$T1, y::$T2, r::RoundingMode)
+            xn, yn = divgcd(numerator(x), numerator(y))
+            xd, yd = divgcd(denominator(x), denominator(y))
+            div(xn * yd, xd * yn, r)
         end
     end
-    for (S, T) in ((BigRational, Integer), (Integer, BigRational), (BigRational, BigRational))
-        @eval begin
-            div(x::$S, y::$T) = div(x, y, RoundToZero)
-            fld(x::$S, y::$T) = div(x, y, RoundDown)
-            cld(x::$S, y::$T) = div(x, y, RoundUp)
-        end
+end
+for (S, T) in ((BigRational, Integer), (Integer, BigRational), (BigRational, BigRational))
+    @eval begin
+        div(x::$S, y::$T) = div(x, y, RoundToZero)
+        fld(x::$S, y::$T) = div(x, y, RoundDown)
+        cld(x::$S, y::$T) = div(x, y, RoundUp)
     end
-
-else
-
-    function round(::Type{T}, x::BigRational, ::RoundingMode{:ToZero}) where T
-        convert(T, div(numerator(x), denominator(x)))
-    end
-    function round(::Type{T}, x::BigRational, ::RoundingMode{:Down}) where T
-        convert(T, fld(numerator(x), denominator(x)))
-    end
-    function round(::Type{T}, x::BigRational, ::RoundingMode{:Up}) where T
-        convert(T, cld(numerator(x), denominator(x)))
-    end
-    function round(::Type{T}, x::BigRational, ::RoundingMode{:Nearest}) where T
-        if T <: Integer
-            if iszero(denominator(x))
-                throw(DivideError())
-            end
-        elseif iszero(denominator(x))
-            return convert(T, Rational{Int32}(sign(numerator(x)), 0))
-        end
-        q,r = divrem(numerator(x), denominator(x))
-        s = q
-        if abs(r) >= abs((denominator(x)-copysign(BigInt(4), numerator(x))+one(BigInt)+iseven(q))>>1 + copysign(BigInt(2), numerator(x)))
-            s += copysign(one(BigInt), numerator(x))
-        end
-        convert(T, s)
-    end
-    function round(::Type{T}, x::BigRational) where T
-        round(T, x, RoundNearest)
-    end
-    for S in (:(RoundingMode{:Up}), :(RoundingMode{:Down}), :(RoundingMode{:ToZero}), :(RoundingMode{:Nearest}))
-        @eval begin
-            function round(::Type{T}, x::BigRational, r::$S) where {T>:Missing}
-                round(nmissingtype(T), x, r)
-            end # to avoid ambiguities
-        end
-    end
-
-    for op in (:div, :fld, :cld)
-        @eval begin
-            function $op(x::BigRational, y::Integer)
-                xn, yn = divgcd(numerator(x), y)
-                $op(xn, denominator(x) * yn)
-            end
-            function $op(x::Integer, y::BigRational)
-                xn, yn = divgcd(x, numerator(y))
-                $op(xn * denominator(y), yn)
-            end
-        end
-        for (T1, T2) in ((:Rational, :BigRational), (:BigRational, :Rational), (:BigRational, :BigRational))
-            @eval begin
-                function $op(x::$T1, y::$T2)
-                    xn, yn = divgcd(numerator(x), numerator(y))
-                    xd, yd = divgcd(denominator(x), denominator(y))
-                    $op(xn * yd, xd * yn)
-                end
-            end
-        end
-    end
-
 end
 
 trunc(::Type{T}, x::BigRational) where {T} = round(T, x, RoundToZero)
@@ -421,10 +347,6 @@ signbit(x::BigRational) = signbit(numerator(x))
 
 copysign(x::BigRational, y::Real) = signbit(x) == signbit(y) ? x : -x
 flipsign(x::BigRational, y::Real) = signbit(y) ? -x : x
-@static if VERSION < v"1.2.0-rc1"
-    copysign(x::BigRational, y::Unsigned) = abs(x)
-    flipsign(x::BigRational, y::Unsigned) = x
-end
 
 abs(x::BigRational) = MPQ.abs(x)
 
@@ -460,7 +382,6 @@ widen(::Type{BigRational}) = BigRational
 big(::Type{BigRational}) = BigRational
 big(x::BigRational) = x
 
-hastypemax(::Type{BigRational}) = true
 typemax(::Type{BigRational}) = BigRational(1,0)
 typemin(::Type{BigRational}) = BigRational(-1,0)
 

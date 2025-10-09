@@ -8,7 +8,7 @@
 This package provides a wrapper around the GNU Multiple Precision (GMP) rational type `mpq_t` into the new Julia type `BigRational`. It requires GMP to be installed.
 For interoperability with Julia's native `BigInt` type (which is a wrapper around GMP's integer type `mpz_t`), the same version of GMP should be used for both Julia and this package. This package is not tested for systems where the default GMP installation version is not the same as Julia's.
 
-GMP functions for rationals are wrapped in the `MPQ` module, similar to `Base.GMP.MPZ`. For instance, to use faster in-place operations, one may do:
+GMP functions for rationals are wrapped in the `MPQ` module, similar to `Base.GMP.MPZ`. For instance, to use faster in-place operations, you can do:
 ```julia
 julia> using BigRationals
 
@@ -40,3 +40,5 @@ BigRational(3,4)
 ```
 
 Be warned that, even with this package, `widen(Rational{Int128}) == Rational{BigInt}` and `big(Rational) == Rational{BigInt}` and not `BigRational`, since changing these behaviours would be type piracy.
+
+Note: starting from Julia v1.9.0 (https://github.com/JuliaLang/julia/pull/44566), GMP's `mpq_t` type underlies any `Rational{BigInt}` instance and computation, so the performance improvement using `BigRationals` should only be modest.
