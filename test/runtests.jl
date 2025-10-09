@@ -197,11 +197,11 @@ end
     @test round(Union{Int,Missing}, BigRational(3,2), RoundDown) == round(Union{Int,Missing}, BigRational(3,2), RoundToZero)
     @test round(Union{Float64,Missing}, BigRational(1,4), RoundUp) == 1.0
     @test_throws DivideError round(Int, typemax(BigRational))
-    if VERSION >= v"1.4.0-rc1"
-        @test gcd(BigRational(3,4), BigRational(5,6)) == gcd(3//4, 5//6)
-        @test lcm(BigRational(-2,7), BigRational(3,8)) == lcm(-2//7, 3//8)
-        @test gcdx(BigRational(1,9), BigRational(5,-2)) == gcdx(1//9, -5//2)
-        @test gcdx(BigRational(2,3), zero(BigRational)) == gcdx(2//3, 0//1)
+    @test gcd(BigRational(3,4), BigRational(5,6)) == gcd(3//4, 5//6)
+    @test lcm(BigRational(-2,7), BigRational(3,8)) == lcm(-2//7, 3//8)
+    @test gcdx(BigRational(1,9), BigRational(5,-2)) == gcdx(1//9, -5//2)
+    @test gcdx(BigRational(2,3), zero(BigRational)) == gcdx(2//3, 0//1)
+    if VERSION < v"1.13.0-"
         @test gcdx(BigRational(1,0), BigRational(5,3)) == BigRational.(gcdx(1//0, 5//3))
     end
     @test sign(BigRational(-3,4)) == -sign(BigRational(2,9))
