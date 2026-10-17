@@ -19,7 +19,7 @@ mutable struct BigRational <: Real
 
     function BigRational()
         b = MPQ.init!(new())
-        finalizer(cglobal((:__gmpq_clear, :libgmp)), b)
+        finalizer(cglobal((:__gmpq_clear, Base.GMP.libgmp)), b)
         return b
     end
 end
