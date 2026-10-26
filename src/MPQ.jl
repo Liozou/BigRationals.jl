@@ -5,7 +5,7 @@ import ..BigRationals: BigRational
 
 const mpq_t = Ref{BigRational}
 
-gmpq(op::Symbol) = (Symbol(:__gmpq_, op), :libgmp)
+gmpq(op::Symbol) = (Symbol(:__gmpq_, op), Base.GMP.libgmp)
 
 for (op) in (:canonicalize, :init, :clear)
     op! = Symbol(op, :!)
@@ -66,18 +66,18 @@ for op in (:mul_2exp, :div_2exp)
     end
 end
 
-cmp(a::BigRational, b::BigRational) = Int(ccall((:__gmpq_cmp, :libgmp), Cint, (mpq_t, mpq_t), a, b))
-equal(a::BigRational, b::BigRational) = Bool(ccall((:__gmpq_equal, :libgmp), Cint, (mpq_t, mpq_t), a, b))
+cmp(a::BigRational, b::BigRational) = Int(ccall((:__gmpq_cmp, Base.GMP.libgmp), Cint, (mpq_t, mpq_t), a, b))
+equal(a::BigRational, b::BigRational) = Bool(ccall((:__gmpq_equal, Base.GMP.libgmp), Cint, (mpq_t, mpq_t), a, b))
 
-cmp_z(a::BigRational, b::BigInt) = Int(ccall((:__gmpq_cmp_z, :libgmp), Cint, (mpq_t, mpz_t), a, b))
-cmp_ui(a::BigRational, b, c) = Int(ccall((:__gmpq_cmp_ui, :libgmp), Cint, (mpq_t, Culong, Culong), a, b, c))
-cmp_si(a::BigRational, b, c) = Int(ccall((:__gmpq_cmp_si, :libgmp), Cint, (mpq_t, Clong, Culong), a, b, c))
+cmp_z(a::BigRational, b::BigInt) = Int(ccall((:__gmpq_cmp_z, Base.GMP.libgmp), Cint, (mpq_t, mpz_t), a, b))
+cmp_ui(a::BigRational, b, c) = Int(ccall((:__gmpq_cmp_ui, Base.GMP.libgmp), Cint, (mpq_t, Culong, Culong), a, b, c))
+cmp_si(a::BigRational, b, c) = Int(ccall((:__gmpq_cmp_si, Base.GMP.libgmp), Cint, (mpq_t, Clong, Culong), a, b, c))
 
-get_d(a::BigRational) = ccall((:__gmpq_get_d, :libgmp), Cdouble, (mpq_t,), a)
+get_d(a::BigRational) = ccall((:__gmpq_get_d, Base.GMP.libgmp), Cdouble, (mpq_t,), a)
 
-get_str!(x, a, b::BigRational) = (ccall((:__gmpq_get_str, :libgmp), Ptr{Cchar}, (Ptr{Cchar}, Cint, mpq_t), x, a, b); x)
-set_str!(x::BigRational, a, b) = Int(ccall((:__gmpq_set_str, :libgmp), Cint, (mpq_t, Ptr{UInt8}, Cint), x, a, b))
+get_str!(x, a, b::BigRational) = (ccall((:__gmpq_get_str, Base.GMP.libgmp), Ptr{Cchar}, (Ptr{Cchar}, Cint, mpq_t), x, a, b); x)
+set_str!(x::BigRational, a, b) = Int(ccall((:__gmpq_set_str, Base.GMP.libgmp), Cint, (mpq_t, Ptr{UInt8}, Cint), x, a, b))
 
-swap!(x::BigRational, y::BigRational) = ccall((:__gmpq_swap, :libgmp), Cvoid, (mpq_t, mpq_t), x, y)
+swap!(x::BigRational, y::BigRational) = ccall((:__gmpq_swap, Base.GMP.libgmp), Cvoid, (mpq_t, mpq_t), x, y)
 
 end # module MPQ
